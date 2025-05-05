@@ -12,6 +12,7 @@ class Minesweeper:
         self.mines = set(random.sample(range(width * height), mines))
         self.field = [[' ' for _ in range(width)] for _ in range(height)]
         self.revealed = [[False for _ in range(width)] for _ in range(height)]
+        self.non_mine_cells = width * height - mines
 
     def print_board(self, reveal=False):
         clear_screen()
@@ -42,21 +43,23 @@ class Minesweeper:
     def reveal(self, x, y):
         if (y * self.width + x) in self.mines:
             return False
-        self.revealed[y][x] = True
-        if self.count_mines_nearby(x, y) == 0:
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < self.width and 0 <= ny < self.height and not self.revealed[ny][nx]:
-                        self.reveal(nx, ny)
+        if not self.revealed[y][x]:
+            self.revealed[y][x] = True
+            if self.count_mines_nearby(x, y) == 0:
+                for dx in [-1, 0, 1]:
+                    for dy in [-1, 0, 1]:
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < self.width and 0 <= ny < self.height and not self.revealed[ny][nx]:
+                            self.reveal(nx, ny)
         return True
 
-    def is_won(self):
+    def is_win(self):
+        revealed_non_mine = 0
         for y in range(self.height):
             for x in range(self.width):
-                if (y * self.width + x) not in self.mines and not self.revealed[y][x]:
-                    return False
-        return True
+                if (y * self.width + x) not in self.mines and self.revealed[y][x]:
+                    revealed_non_mine += 1
+        return revealed_non_mine == self.non_mine_cells
 
     def play(self):
         while True:
@@ -64,13 +67,16 @@ class Minesweeper:
             try:
                 x = int(input("Enter x coordinate: "))
                 y = int(input("Enter y coordinate: "))
+                if x < 0 or x >= self.width or y < 0 or y >= self.height:
+                    print("Coordinates out of range. Try again.")
+                    continue
                 if not self.reveal(x, y):
                     self.print_board(reveal=True)
                     print("Game Over! You hit a mine.")
                     break
-                if self.is_won():
+                if self.is_win():
                     self.print_board(reveal=True)
-                    print("Congratulations! You win!")
+                    print("Congratulations! You cleared all non-mine cells!")
                     break
             except ValueError:
                 print("Invalid input. Please enter numbers only.")
